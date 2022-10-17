@@ -1,14 +1,15 @@
 import pandas as pd
+import matplotlib.pyplot as plt
 
 # reads files structured in the format we're using for ariel files
 def read_ariel(prompt):
     # loop until the user enters a correct filename
     while True:
-        try:
-            # asks the user to enter a file as prompted
-            full_prompt="Please enter the path to the "+prompt+" file:"
-            filename=input(full_prompt)
+        # asks the user to enter a file as prompted
+        full_prompt = "Please enter the path to the " + prompt + " file:\t"
+        filename = input(full_prompt)
 
+        try:
             # reads the data into a pandas dataframe
             data= pd.read_csv(filename,
                               delim_whitespace=True, # files are delimted by whitespace (5 spaces)
@@ -60,12 +61,18 @@ def extract_dark(prompt,dark):
 
 def calculate_transmission(unfiltered,filtered):
     merge_df=pd.merge(unfiltered,filtered, on="Wavelength", how='inner',suffixes=('_unfiltered','_filtered'))
-    transmission=merge_df['Current_filtered']/merge_df['Current_unfiltered']
-    print(transmission)
+    transmission_data=merge_df['Current_filtered']/merge_df['Current_unfiltered']
+    transmission=pd.DataFrame({'Transmission':transmission_data,'Wavelength':merge_df['Wavelength']})
+
     return(transmission)
 
 def plot_data(transmission):
-    pass
+    plt.plot(transmission['Wavelength'],transmission['Transmission'], 'k.')
+    plt.xlabel('Wavelength (nm)')
+    plt.ylabel('Transmission')
+    plt.title('Plot of Transmission against Wavelength')
+    plt.show()
+
 
 def save_data(transmission):
     pass
