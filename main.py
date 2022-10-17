@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
 
 # reads files structured in the format we're using for ariel files
 def read_ariel(prompt):
@@ -73,9 +74,41 @@ def plot_data(transmission):
     plt.title('Plot of Transmission against Wavelength')
     plt.show()
 
+def ask_yn(prompt):
+    while True:
+        ans_yn=input('Do you wish to '+prompt+'? (y/n): \t')
+        if ans_yn.lower() in ('y','yes', 'yeah', 'yep', 'yus', 'yarp'):
+            ans_yn = 'y'
+            break
+        elif ans_yn.lower() in ('n','no', 'nah', 'nope', 'narp'):
+            ans_yn = 'n'
+            break
+        else:
+            print("Invalid response: "+ans_yn)
+
+    return ans_yn
+
+def get_save_path():
+    while True:
+        filename = input("Please enter the file path to save to:\t")
+        if os.path.exists(filename):
+            print("WARNING: "+filename+" exists already!")
+            if 'y'==ask_yn("Overwrite "+filename):
+                break
+            else:
+                print("Select a new file")
+
+    return (filename)
 
 def save_data(transmission):
-    pass
+    save_yn=ask_yn("save the transmission data")
+    if 'y'==save_yn:
+        #while True:
+        filename=get_save_path()
+        #try:
+        transmission.to_csv(filename, index=False)
+
+
 
 
 def main():
