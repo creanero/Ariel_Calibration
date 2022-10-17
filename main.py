@@ -1,5 +1,45 @@
+import pandas as pd
+
+# reads files structured in the format we're using for ariel files
+def read_ariel(prompt):
+    # loop until the user enters a correct filename
+    while True:
+        try:
+            # asks the user to enter a file as prompted
+            full_prompt="Please enter the path to the "+prompt+" file:"
+            filename=input(full_prompt)
+
+            # reads the data into a pandas dataframe
+            data= pd.read_csv(filename,
+                              delim_whitespace=True, # files are delimted by whitespace (5 spaces)
+                              header=None, # files have no headers
+                              names=('Wavelength', 'Current', 'Control')) # files contain wavelength and current.
+            break # end the loop if it worked correctly.
+
+        # if the file isn't found
+        except FileNotFoundError:
+            print("File "+filename+" not found.")
+            print("Please try again")
+
+        #if the data can't be parsed into the 3-column structure we expect
+        except pd.errors.ParserError:
+            print("Unable to extract data from "+filename)
+            print("Data in this file probably has the wrong structure")
+            print("Please try again")
+
+    return (data) # returns a pandas dataframe containing three columns
+
 def read_dark():
-    pass
+    # describes the data to the user
+    dark_name="Dark Current"
+
+    # prompts the user for the file and reads it in
+    dark_data=read_ariel(dark_name)
+
+    # gets the average of the current values
+    dark_average=dark_data['Current'].mean()
+
+    return (dark_average)
 
 def read_unfiltered(dark):
     pass
@@ -41,4 +81,3 @@ def main():
 if __name__ == '__main__':
     main()
 
-#
