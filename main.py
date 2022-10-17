@@ -41,14 +41,28 @@ def read_dark():
 
     return (dark_average)
 
-def read_unfiltered(dark):
-    pass
+def remove_dark(raw_data,dark=0.0):
+    # copies the raw data
+    data=raw_data.copy()
 
-def read_filtered(dark):
-    pass
+    #subtracts the dark current from it
+    data["Current"]=data["Current"].sub(dark)
+    return data
+
+def extract_dark(prompt,dark):
+    # prompts the user for the file and reads it in
+    raw_data=read_ariel(prompt)
+
+    #performs dark removal on
+    data=remove_dark(raw_data,dark)
+    return data
+
 
 def calculate_transmission(unfiltered,filtered):
-    pass
+    merge_df=pd.merge(unfiltered,filtered, on="Wavelength", how='inner',suffixes=('_unfiltered','_filtered'))
+    transmission=merge_df['Current_filtered']/merge_df['Current_unfiltered']
+    print(transmission)
+    return(transmission)
 
 def plot_data(transmission):
     pass
@@ -62,10 +76,10 @@ def main():
     dark=read_dark()
 
     # reads in unfiltered data per frequency
-    unfiltered=read_unfiltered(dark)
+    unfiltered=extract_dark("Unfiltered",dark)
 
     # reads in filtered data per frequency
-    filtered=read_filtered(dark)
+    filtered=extract_dark("Filtered",dark)
 
     # Calculates the transmission (filtered/unfiltered)
     transmission=calculate_transmission(unfiltered,filtered)
