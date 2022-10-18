@@ -9,4 +9,7 @@ Follow the instructions on the screen to select the dark current, the filtered d
 
 Provided with this project are three sets of sample data `dark.txt`, `filtered.txt` and `unfiltered.txt`.
 
-Additionally, a sample output of this software `transmission.csv` is also provided.
+Additionally, a sample output of this software `transmission.csv` is also provided, as well as an example of the plots 
+that can be generated with this system `sample_plot.png` as shown below.
+
+![Plot showing a transmission spectrum in the near infrared](sample_plot.png "Plot showing a transmission spectrum in the near infrared")
