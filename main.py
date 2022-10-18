@@ -121,6 +121,8 @@ def main():
     # reads in filtered data per frequency
     filtered=extract_dark("Filtered",dark)
 
+    print(test)
+
     # Calculates the transmission (filtered/unfiltered)
     transmission=calculate_transmission(unfiltered,filtered)
 
