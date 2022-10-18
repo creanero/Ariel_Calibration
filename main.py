@@ -68,11 +68,12 @@ def calculate_transmission(unfiltered,filtered):
     return(transmission)
 
 def plot_data(transmission):
-    plt.plot(transmission['Wavelength'],transmission['Transmission'], 'k.')
-    plt.xlabel('Wavelength (nm)')
-    plt.ylabel('Transmission')
-    plt.title('Plot of Transmission against Wavelength')
-    plt.show()
+    if 'y' == ask_yn("Plot the data on a graph"):
+        plt.plot(transmission['Wavelength'],transmission['Transmission'], 'k.')
+        plt.xlabel('Wavelength (nm)')
+        plt.ylabel('Transmission')
+        plt.title('Plot of Transmission against Wavelength')
+        plt.show()
 
 def ask_yn(prompt):
     while True:
@@ -126,10 +127,7 @@ def save_data(transmission):
             except OSError:
                 print('Unable to save')
 
-
-
-
-def main():
+def read_data():
     # reads in the dark current values and return the average
     dark=read_dark()
     print("Average Dark Current: "+f'{dark:.4g}'+"A")
@@ -140,7 +138,13 @@ def main():
     # reads in filtered data per frequency
     filtered=extract_dark("Filtered",dark)
 
-    print(test)
+    return(unfiltered,filtered)
+
+
+
+def main():
+    #read in the data
+    unfiltered, filtered = read_data()
 
     # Calculates the transmission (filtered/unfiltered)
     transmission=calculate_transmission(unfiltered,filtered)
