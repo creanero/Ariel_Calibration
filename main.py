@@ -41,6 +41,8 @@ def read_dark():
     # gets the average of the current values
     dark_average=dark_data['Current'].mean()
 
+
+    print("Average Dark Current: "+f'{dark_average:.4g}'+" Amps")
     return (dark_average)
 
 def remove_dark(raw_data,dark=0.0):
@@ -52,12 +54,52 @@ def remove_dark(raw_data,dark=0.0):
     return data
 
 def extract_dark(prompt,dark):
-    # prompts the user for the file and reads it in
-    raw_data=read_ariel(prompt)
+    # asks how many files to input
+    count = ask_count("How many "+prompt+" files do you wish to input?")
 
-    #performs dark removal on
-    data=remove_dark(raw_data,dark)
+    data_all = pd.DataFrame(columns=['Wavelength', 'Current'])
+    for i in range(count):
+
+        # prompts the user for the file and reads it in
+        raw_data_i=read_ariel(to_ordinal(1+i)+" "+prompt)
+
+        # performs dark removal on the data
+        data_i=remove_dark(raw_data_i,dark)
+
+        data_all=pd.concat([data_all,data_i])
+    print("data_all")
+    print(data_all)
+    data=data_all.groupby('Wavelength', as_index=False)['Current'].mean()
+    print("data")
+    print(data)
     return data
+
+def to_ordinal(in_integer):
+    if in_integer in (11,12,13):
+        out_ordinal = str(in_integer)+'th'
+    elif 1 == in_integer%10:
+        out_ordinal = str(in_integer)+'st'
+    elif 2 == in_integer%10:
+        out_ordinal = str(in_integer)+'nd'
+    elif 3 == in_integer%10:
+        out_ordinal = str(in_integer)+'rd'
+    else:
+        out_ordinal = str(in_integer)+'th'
+    return out_ordinal
+def ask_count(prompt='Please Enter an integer:'):
+    count = 0
+    while True:
+        text_input=input(prompt+'\t')
+        try:
+            count = int(text_input)
+            break
+
+        except ValueError:
+            print("WARNING: input value ("+text_input+") is not an integer!")
+            print("Please try again.")
+
+    return count
+
 
 
 def calculate_transmission(unfiltered,filtered):
@@ -68,11 +110,12 @@ def calculate_transmission(unfiltered,filtered):
     return(transmission)
 
 def plot_data(transmission):
-    plt.plot(transmission['Wavelength'],transmission['Transmission'], 'k.')
-    plt.xlabel('Wavelength (nm)')
-    plt.ylabel('Transmission')
-    plt.title('Plot of Transmission against Wavelength')
-    plt.show()
+    if 'y' == ask_yn("Plot the data on a graph"):
+        plt.plot(transmission['Wavelength'],transmission['Transmission'], 'k.')
+        plt.xlabel('Wavelength (nm)')
+        plt.ylabel('Transmission')
+        plt.title('Plot of Transmission against Wavelength')
+        plt.show()
 
 def ask_yn(prompt):
     while True:
@@ -126,19 +169,23 @@ def save_data(transmission):
             except OSError:
                 print('Unable to save')
 
-
-
-
-def main():
+def read_data():
     # reads in the dark current values and return the average
     dark=read_dark()
-    print("Average Dark Current: "+f'{dark:.4g}'+"A")
 
     # reads in unfiltered data per frequency
     unfiltered=extract_dark("Unfiltered",dark)
 
     # reads in filtered data per frequency
     filtered=extract_dark("Filtered",dark)
+
+    return(unfiltered,filtered)
+
+
+
+def main():
+    #read in the data
+    unfiltered, filtered = read_data()
 
     # Calculates the transmission (filtered/unfiltered)
     transmission=calculate_transmission(unfiltered,filtered)
