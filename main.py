@@ -89,24 +89,42 @@ def ask_yn(prompt):
     return ans_yn
 
 def get_save_path():
-    while True:
+    while True: # repeat until it works
         filename = input("Please enter the file path to save to:\t")
-        if os.path.exists(filename):
-            print("WARNING: "+filename+" exists already!")
-            if 'y'==ask_yn("Overwrite "+filename):
-                break
-            else:
-                print("Select a new file")
+        dirname = os.path.dirname(filename)
+        if os.path.exists(filename): # if the file already exists
+            print("WARNING: "+filename+" exists already!") # warn the user
+            if 'y'==ask_yn("Overwrite "+filename): # check if they want to overwrite
+                break # if they do, break the while loop and return the path
+            else: # if they don't want to overwrite
+                print("Select a new file") # tell them to try again, don't break the loop
+
+        elif ''==dirname: # if the path is a relative path
+            break # break the loop and return the filename
+
+        elif os.path.exists(dirname): # if the directory exists (but not the file)
+            break # break the loop and return the filename
+
+        else: # if neither the file nor the directory exists and the path isn't relative
+            try: # try to make the directory
+                os.mkdir(dirname) # make the directory
+                break # break the main loop and return the filename
+            except OSError: # if it doesn't work
+                print("ERROR: unable to create directory "+dirname)
+                print("Please try again.") # warn the user, and allow them to try again
 
     return (filename)
 
 def save_data(transmission):
     save_yn=ask_yn("save the transmission data")
     if 'y'==save_yn:
-        #while True:
-        filename=get_save_path()
-        #try:
-        transmission.to_csv(filename, index=False)
+        while True:
+            filename=get_save_path()
+            try:
+                transmission.to_csv(filename, index=False)
+                break
+            except OSError:
+                print('Unable to save')
 
 
 
@@ -114,6 +132,7 @@ def save_data(transmission):
 def main():
     # reads in the dark current values and return the average
     dark=read_dark()
+    print("Average Dark Current: "+f'{dark:.4g}'+"A")
 
     # reads in unfiltered data per frequency
     unfiltered=extract_dark("Unfiltered",dark)

@@ -2,8 +2,19 @@
 This software is designed to carry out calibration calculations for transmission against wavelength.
 It uses measured currents when a light source is passed through a filter, directly onto the detector and off. 
 
+## Requirements
+`python3`
+`git`
+`matplotlib`
+
+## How to install
+### From the command line
+type `git clone https://github.com/creanero/Ariel_Calibration.git`
+
 ## How to use
-run `main.py`
+change to the directory you installed the program to
+
+run `python3 main.py`
 
 Follow the instructions on the screen to select the dark current, the filtered data and the unfiltered data.
 
