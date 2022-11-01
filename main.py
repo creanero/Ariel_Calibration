@@ -57,7 +57,8 @@ def extract_dark(prompt,dark):
     # asks how many files to input
     count = ask_count("How many "+prompt+" files do you wish to input?")
 
-    data_all = pd.DataFrame(columns=['Wavelength', 'Current'])
+    data_all = pd.DataFrame()
+    data_list = pd.DataFrame()
     for i in range(count):
 
         # prompts the user for the file and reads it in
@@ -66,33 +67,60 @@ def extract_dark(prompt,dark):
         # performs dark removal on the data
         data_i=remove_dark(raw_data_i,dark)
 
+        # Drops the control column that's present in some input files but should be removed
+        try:
+            data_i.drop(columns=['Control'], inplace=True)
+        except KeyError:
+            # if this is already gone, then good, leave it alone
+            pass
+
+        # combines this data into a long dataframe with all Current values in one column for averaging
         data_all=pd.concat([data_all,data_i])
-    print("data_all")
-    print(data_all)
-    data=data_all.groupby('Wavelength', as_index=False)['Current'].mean()
-    print("data")
-    print(data)
-    return data
+
+        # combines this data into a wide dataframe with separate current values for each input file
+        if 0 == i: # to initialise before any data is added
+            data_list = data_i # initialise the list with the data from file #0
+        else: # from file #1 onwards
+            # merge the new data with the existing data
+            data_list=pd.merge(data_list,data_i, on="Wavelength", how='outer',suffixes=('','_'+str(i)))
+        # rename the Current column to Current_i, so it's identifiable and iterable
+        data_list.rename(columns={'Current':'Current_'+str(i)}, inplace = True)
+
+    data_aggregate=data_all.groupby('Wavelength', as_index=False)['Current'].mean()
+    data_aggregate=pd.merge(data_aggregate,data_list, on="Wavelength", how='outer')
+
+    return data_aggregate
 
 def to_ordinal(in_integer):
-    if in_integer in (11,12,13):
+    if abs(in_integer) in (11,12,13):
         out_ordinal = str(in_integer)+'th'
-    elif 1 == in_integer%10:
+    elif 1 == abs(in_integer)%10:
         out_ordinal = str(in_integer)+'st'
-    elif 2 == in_integer%10:
+    elif 2 == abs(in_integer)%10:
         out_ordinal = str(in_integer)+'nd'
-    elif 3 == in_integer%10:
+    elif 3 == abs(in_integer)%10:
         out_ordinal = str(in_integer)+'rd'
     else:
         out_ordinal = str(in_integer)+'th'
     return out_ordinal
-def ask_count(prompt='Please Enter an integer:'):
+def ask_count(prompt='Please Enter an integer:', negative_allowed=False, zero_allowed=False):
     count = 0
     while True:
         text_input=input(prompt+'\t')
         try:
             count = int(text_input)
-            break
+            if count > 0:
+                break
+            elif count == 0 and zero_allowed:
+                break
+            elif count == 0:
+                print("Zero value input not allowed!")
+                print("Please try again")
+            elif count < 0 and negative_allowed:
+                break
+            elif count < 0:
+                print("Negative value ("+text_input+") not allowed!")
+                print("Please try again")
 
         except ValueError:
             print("WARNING: input value ("+text_input+") is not an integer!")
@@ -100,22 +128,77 @@ def ask_count(prompt='Please Enter an integer:'):
 
     return count
 
+def ask_dict(options={'Key':'Value'},prompt="Select from the following options:\t"):
+    while True:
+        print(prompt)
+        for k in options.keys():
+            print('For '+str(k)+' enter '+str(options[k]))
+
+        selection=input("Please make your selection now:\t")
+        if selection in options.values():
+            break
+        else:
+            print("The value you have entered "+selection+" is not available.")
+    return selection
+
+def merge_and_calculate(unfiltered, filtered):
+    # gets the number of filtered columns
+    filtered_count=sum(1 for col in filtered.columns if "Current_" in col)
+
+    # renames the columns
+    for col in unfiltered.columns:
+        if "Current" in col:
+            unfiltered.rename(columns={col:col+'_unfiltered'}, inplace = True)
+
+    for col in filtered.columns:
+        if "Current" in col:
+            filtered.rename(columns={col:col+'_filtered'}, inplace = True)
+
+    # merges the dataframes with an outer joi. Any data where there is no corresponding value in other columns is
+    # assigned NaN value which is not plotted
+    merge_df=pd.merge(unfiltered,filtered, on="Wavelength", how='outer',suffixes=('_unfiltered','_filtered'))
+    # gets the overall values
+    merge_df['Transmission']=merge_df['Current_filtered']/merge_df['Current_unfiltered']
 
 
-def calculate_transmission(unfiltered,filtered):
-    merge_df=pd.merge(unfiltered,filtered, on="Wavelength", how='inner',suffixes=('_unfiltered','_filtered'))
-    transmission_data=merge_df['Current_filtered']/merge_df['Current_unfiltered']
-    transmission=pd.DataFrame({'Transmission':transmission_data,'Wavelength':merge_df['Wavelength']})
+    for i in range(filtered_count):
+        # gets the values for each filtered data
+        merge_df['Transmission_'+str(i)] = merge_df['Current_'+str(i)+'_filtered'] / merge_df['Current_unfiltered']
 
-    return(transmission)
+    return(merge_df)
 
-def plot_data(transmission):
-    if 'y' == ask_yn("Plot the data on a graph"):
-        plt.plot(transmission['Wavelength'],transmission['Transmission'], 'k.')
-        plt.xlabel('Wavelength (nm)')
-        plt.ylabel('Transmission')
-        plt.title('Plot of Transmission against Wavelength')
-        plt.show()
+def plot_data(merge_df):
+
+    if 'y' == ask_yn("plot the data on a graph"):
+        while True:
+            plot_type=ask_dict({'Transmission':'t','Raw Data':'r'}, "Select whether to plot Transmission or Raw Data")
+            plot_num=ask_dict({'Only Mean':'m','Only Separate':'s', 'Both at once':'b'},
+                              "Select whether to plot the mean of all filtered values, the individual filtered values\
+                               or both the mean and the individual values.")
+
+            if plot_type=='t':
+                y = 'Transmission'
+                plt.ylabel('Transmission')
+                plt.title('Plot of Transmission against Wavelength')
+
+
+            if plot_type=='r':
+                y = 'Current_filtered'
+                plt.ylabel('Current (Amps)')
+                plt.title('Plot of Current against Wavelength')
+
+            x = 'Wavelength'
+
+            if plot_num in ('m','b'):
+                plt.plot(merge_df[x], merge_df[y], 'k.')
+            # if plot_num in ('i','b'):
+            #     plt.plot(merge_df[x], merge_df[y], 'k.')
+            plt.xlabel('Wavelength (nm)')
+            plt.show()
+            if 'n' == ask_yn("plot another graph"):
+                break
+
+
 
 def ask_yn(prompt):
     while True:
@@ -158,13 +241,13 @@ def get_save_path():
 
     return (filename)
 
-def save_data(transmission):
-    save_yn=ask_yn("save the transmission data")
+def save_data(merge_df):
+    save_yn=ask_yn("save the calculated data")
     if 'y'==save_yn:
         while True:
             filename=get_save_path()
             try:
-                transmission.to_csv(filename, index=False)
+                merge_df.to_csv(filename, index=False)
                 break
             except OSError:
                 print('Unable to save')
@@ -187,14 +270,14 @@ def main():
     #read in the data
     unfiltered, filtered = read_data()
 
-    # Calculates the transmission (filtered/unfiltered)
-    transmission=calculate_transmission(unfiltered,filtered)
+    # Calculates the transmission and merges the data (filtered/unfiltered)
+    merge_df=merge_and_calculate(unfiltered, filtered)
 
     # Plots the data on a graph
-    plot_data(transmission)
+    plot_data(merge_df)
 
-    # saves the transmission data
-    save_data(transmission)
+    # saves the calculated and aggregated data
+    save_data(merge_df)
 
 
 
