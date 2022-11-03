@@ -173,24 +173,28 @@ def plot_data(merge_df):
         while True:
             plot_type=ask_dict({'Transmission':'t','Raw Data':'r'}, "Select whether to plot Transmission or Raw Data")
             plot_num=ask_dict({'Only Mean':'m','Only Separate':'s', 'Both at once':'b'},
-                              "Select whether to plot the mean of all filtered values, the individual filtered values\
-                               or both the mean and the individual values.")
+                               "Select whether to plot the mean of all filtered values, the individual filtered values"+
+                               " or both the mean and the individual values.")
 
             if plot_type=='t':
-                y = 'Transmission'
                 plt.ylabel('Transmission')
                 plt.title('Plot of Transmission against Wavelength')
+                if plot_num in ('m', 'b'):
+                    plt.plot(merge_df['Wavelength'], merge_df['Transmission'], 'k.')#
+
 
 
             if plot_type=='r':
-                y = 'Current_filtered'
                 plt.ylabel('Current (Amps)')
                 plt.title('Plot of Current against Wavelength')
+                if plot_num in ('m', 'b'):
+                    plt.plot(merge_df['Wavelength'], merge_df['Current_filtered'], 'k.')
+                    plt.plot(merge_df['Wavelength'], merge_df['Current_unfiltered'], 'r.')
 
-            x = 'Wavelength'
 
-            if plot_num in ('m','b'):
-                plt.plot(merge_df[x], merge_df[y], 'k.')
+
+            # if plot_num in ('m','b'):
+            #     plt.plot(merge_df[x], merge_df[y], 'k.')
             # if plot_num in ('i','b'):
             #     plt.plot(merge_df[x], merge_df[y], 'k.')
             plt.xlabel('Wavelength (nm)')
