@@ -148,22 +148,22 @@ def merge_and_calculate(unfiltered, filtered):
     # renames the columns
     for col in unfiltered.columns:
         if "Current" in col:
-            unfiltered.rename(columns={col:col+'_unfiltered'}, inplace = True)
+            unfiltered.rename(columns={col:'Unfiltered_'+col}, inplace = True)
 
     for col in filtered.columns:
         if "Current" in col:
-            filtered.rename(columns={col:col+'_filtered'}, inplace = True)
+            filtered.rename(columns={col:'Filtered_'+col}, inplace = True)
 
     # merges the dataframes with an outer joi. Any data where there is no corresponding value in other columns is
     # assigned NaN value which is not plotted
     merge_df=pd.merge(unfiltered,filtered, on="Wavelength", how='outer',suffixes=('_unfiltered','_filtered'))
     # gets the overall values
-    merge_df['Transmission']=merge_df['Current_filtered']/merge_df['Current_unfiltered']
+    merge_df['Transmission']=merge_df['Filtered_Current']/merge_df['Unfiltered_Current']
 
 
     for i in range(filtered_count):
         # gets the values for each filtered data
-        merge_df['Transmission_'+str(i)] = merge_df['Current_'+str(i)+'_filtered'] / merge_df['Current_unfiltered']
+        merge_df['Transmission_'+str(i)] = merge_df['Filtered_Current_'+str(i)] / merge_df['Unfiltered_Current']
 
     return(merge_df)
 
@@ -180,7 +180,12 @@ def plot_data(merge_df):
                 plt.ylabel('Transmission')
                 plt.title('Plot of Transmission against Wavelength')
                 if plot_num in ('m', 'b'):
-                    plt.plot(merge_df['Wavelength'], merge_df['Transmission'], 'k.')#
+                    plt.plot(merge_df['Wavelength'], merge_df['Transmission'], 'k.')
+                if plot_num in ('s', 'b'):
+                    filtered_count=sum(1 for col in merge_df.columns if "Transmission_" in col)
+                    for i in range(filtered_count):
+                        plt.plot(merge_df['Wavelength'], merge_df['Transmission_'+str(i)], '.')
+                    
 
 
 
@@ -188,8 +193,17 @@ def plot_data(merge_df):
                 plt.ylabel('Current (Amps)')
                 plt.title('Plot of Current against Wavelength')
                 if plot_num in ('m', 'b'):
-                    plt.plot(merge_df['Wavelength'], merge_df['Current_filtered'], 'k.')
-                    plt.plot(merge_df['Wavelength'], merge_df['Current_unfiltered'], 'r.')
+                    plt.plot(merge_df['Wavelength'], merge_df['Filtered_Current'], 'k.')
+                    plt.plot(merge_df['Wavelength'], merge_df['Unfiltered_Current'], 'r.')
+                if plot_num in ('s', 'b'):
+                    filtered_count=sum(1 for col in merge_df.columns if "Filtered_Current_" in col)
+                    for i in range(filtered_count):
+                        transparency = (i+0.5)/filtered_count
+                        plt.plot(merge_df['Wavelength'], merge_df['Filtered_Current_'+str(i)], 'k.', alpha=transparency)
+                        
+                    unfiltered_count=sum(1 for col in merge_df.columns if "Unfiltered_Current_" in col)
+                    for i in range(unfiltered_count):
+                        plt.plot(merge_df['Wavelength'], merge_df['Unfiltered_Current_'+str(i)], 'r.', alpha=transparency)
 
 
 
